@@ -1,9 +1,17 @@
 import re
+import os
+import time
 import openpyxl
+import warnings
+from tqdm import tqdm
 from openpyxl import Workbook
 
-db = '/Users/nikolajtukmaceva/Downloads/OzonGen/Исторические данные/Май.xlsx'
-output = '/Users/nikolajtukmaceva/Downloads/Фильтр_по_параметрам.xlsx'
+dir_path = os.path.dirname(os.path.realpath(__file__))
+warnings.filterwarnings('ignore')
+
+all_goods = input("Укажите путь к файлу с товарами: ")
+filter_output_file_path = os.path.join(dir_path, "Фильтр_по_параметрам.xlsx")
+statistics_output_file_path = os.path.join(dir_path, "Статистика.xlsx")
 
 # Категории для удаления
 categories_to_remove = ['пила цепная', 
@@ -100,8 +108,15 @@ def filter_producs_by_parametrs(path):
     removed_by_lost_profit = 0
 
     # Открываем существующий файл Excel
+    print(f"Открываем файл, пожалуйста подождите...")
     wb = openpyxl.load_workbook(path)
     ws = wb.active
+
+    # Получите общее количество строк
+    total_rows = ws.max_row
+
+    # Создайте прогресс бар
+    progress_bar = tqdm(total=total_rows, desc="Фильтруем товары: ")
     
     # Создаем новый рабочий лист для результата
     wb_result = Workbook()
@@ -111,6 +126,8 @@ def filter_producs_by_parametrs(path):
     
     # Проходимся по каждой строке данных
     for row in ws.iter_rows(values_only=True):
+
+        progress_bar.update(1)
 
         # Получение значения из таблицы 
         root_category = process_excel_cell(row[0])
@@ -175,7 +192,9 @@ def filter_producs_by_parametrs(path):
         #print(f"Категория: {root_category:<20} | Стоимость: {average_selling_price:>7} | Продажи в день: {average_number_of_orders_per_day:>7} | Просмотры каталога: {number_of_catalog_views_in_28_days:>7} | Просмотры карточки: {number_of_product_card_views_in_28_days:>7}")
         
     # Сохраняем результат в новый файл Excel
-    wb_result.save(output)
+    wb_result.save(filter_output_file_path)
+    progress_bar.close()
+
      # Форматируем и выводим результат
     print(f"""
     Статистика удаления товаров:
@@ -189,23 +208,25 @@ def filter_producs_by_parametrs(path):
     Удалено по упущенной прибыли:  {removed_by_lost_profit}
     """)
     
-    print(f"Результат сохранен в файл: {output}")
+    print(f"Результат сохранен в файл: {filter_output_file_path}")
 
-#Метод генерирует фаил с общей статистикой покатегориям 
-def statistics_generator(path):
-    # Открываем существующий файл Excel
-    wb = openpyxl.load_workbook(path)
+# Генерация статистики по категориям
+def statistics_generator(excel_file_path):
+
+    print(f"Подготавливаем статистику по категориям")
+
+    # Открытие существующего файла Excel
+    wb = openpyxl.load_workbook(excel_file_path)
     ws = wb.active
 
-    # Создаем новый рабочий лист для результата
+    # Создание нового рабочего листа для результата
     wb_result = Workbook()
     ws_result = wb_result.active
-    ws_result.append(['Категория 1', 'Категория 2', 'Категория 3', 'Категория 4', 'Количество товаров', 'Оборот', 'Продавцов','Количество товаров на одного продавца', 'Количество продаж в день'])
+    ws_result.append(['Категория 1', 'Категория 2', 'Категория 3', 'Категория 4', 'Количество товаров', 'Оборот', 'Продавцов', 'Количество товаров на одного продавца', 'Количество продаж в день'])
 
     category_counts = {}
 
     for row in ws.iter_rows(values_only=True):
-
         average_number_orders_per_days_availability = excel_cell_to_int(row[14])
         root_category = process_excel_cell(row[0])
         category_2 = process_excel_cell(row[1])
@@ -217,7 +238,12 @@ def statistics_generator(path):
         category_key = f"{root_category}_{category_2}_{category_3}_{category_4}"
 
         if category_key not in category_counts:
-            category_counts[category_key] = {'count': 0, 'turnover': 0, 'sellers': set(), 'average_number_orders_per_days_availability': 0}
+            category_counts[category_key] = {
+                'count': 0,
+                'turnover': 0,
+                'sellers': set(),
+                'average_number_orders_per_days_availability': 0
+            }
 
         category_counts[category_key]['count'] += 1
         category_counts[category_key]['turnover'] += turnover
@@ -229,11 +255,20 @@ def statistics_generator(path):
         sellers_count = len(data['sellers'])
         average_items_per_seller = data['count'] / sellers_count if sellers_count else 0  # Избегаем деления на ноль
         if average_items_per_seller > 4:
-            ws_result.append([root_category, category_2, category_3, category_4, data['count'], data['turnover'], sellers_count, average_items_per_seller, data['average_number_orders_per_days_availability']])
+            ws_result.append([
+                root_category,
+                category_2,
+                category_3,
+                category_4,
+                data['count'],
+                data['turnover'],
+                sellers_count,
+                average_items_per_seller,
+                data['average_number_orders_per_days_availability']
+            ])
+    
+    wb_result.save(statistics_output_file_path)
+    print(f"Статистика сгенерирована, сохранена: {statistics_output_file_path}")
 
-    # Сохранение результатов в файл
-    wb_result.save('/Users/nikolajtukmaceva/Downloads/Стата.xlsx')
-    print(f"/Users/nikolajtukmaceva/Downloads/Стата")
-
-filter_producs_by_parametrs(db)
-statistics_generator(output)
+filter_producs_by_parametrs(all_goods)
+statistics_generator(filter_output_file_path)
