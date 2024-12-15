@@ -18,7 +18,7 @@ Usage
 2. Run the script by entering the following command:
 
 ```
-   python3 filterProductsByParameters.py
+   python3 main.py
 ```
 
 3. When the script is execut, it will prompt you to enter the file path to you ozon data
