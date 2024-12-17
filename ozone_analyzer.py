@@ -1,8 +1,9 @@
 import os
 import warnings
+import openpyxl
+import utils
 from tqdm import tqdm
 from openpyxl import Workbook
-from utils import excel_cell_to_int, process_excel_cell
 
 class OzoneAnalyzer:
     def __init__(self, input_file, output_filtered="Фильтр_по_параметрам.xlsx", output_stats="Статистика.xlsx"):
@@ -61,14 +62,14 @@ class OzoneAnalyzer:
 
         for row in ws.iter_rows(values_only=True):
             progress_bar.update(1)
-            categories = [self.process_excel_cell(row[i]) for i in range(4)]
-            average_selling_price = self.excel_cell_to_int(row[11])
-            lost_profit = self.excel_cell_to_int(row[15])
-            availability = self.excel_cell_to_int(row[12])
-            scheme = self.process_excel_cell(row[9])
-            average_number_of_orders_per_day = self.excel_cell_to_int(row[14])
-            catalog_views = self.excel_cell_to_int(row[18])
-            product_views = self.excel_cell_to_int(row[19])
+            categories = [utils.process_excel_cell(row[i]) for i in range(4)]
+            average_selling_price = utils.excel_cell_to_int(row[11])
+            lost_profit = utils.excel_cell_to_int(row[15])
+            availability = utils.excel_cell_to_int(row[12])
+            scheme = utils.process_excel_cell(row[9])
+            average_number_of_orders_per_day = utils.excel_cell_to_int(row[14])
+            catalog_views = utils.excel_cell_to_int(row[18])
+            product_views = utils.excel_cell_to_int(row[19])
 
             if any(cat.lower() in [r.lower() for r in self.categories_to_remove] for cat in categories):
                 continue
@@ -124,10 +125,10 @@ class OzoneAnalyzer:
         category_counts = {}
 
         for row in ws.iter_rows(values_only=True):
-            avg_orders = self.excel_cell_to_int(row[14])
-            categories = [self.process_excel_cell(row[i]) for i in range(4)]
-            turnover = self.excel_cell_to_int(row[10])
-            seller = self.process_excel_cell(row[7])
+            avg_orders = utils.excel_cell_to_int(row[14])
+            categories = [utils.process_excel_cell(row[i]) for i in range(4)]
+            turnover = utils.excel_cell_to_int(row[10])
+            seller = utils.process_excel_cell(row[7])
 
             category_key = "_".join(categories)
 
