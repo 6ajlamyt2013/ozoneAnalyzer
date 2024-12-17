@@ -152,3 +152,28 @@ class OzoneAnalyzer:
 
         wb_result.save(self.statistics_output_file_path)
         print(f"Статистика сгенерирована, сохранена: {self.statistics_output_file_path}")
+
+    def filter_by_category(self, category_name):
+        try:
+            wb = openpyxl.load_workbook(self.filter_output_file_path)
+            ws = wb.active
+
+            wb_result = Workbook()
+            ws_result = wb_result.active
+
+            # Копируем заголовок
+            for row in ws.iter_rows(min_row=1, max_row=2, values_only=True):
+                ws_result.append(row)
+
+            for row in ws.iter_rows(min_row=3, values_only=True):
+                categories = [utils.process_excel_cell(row[i]) for i in range(4)] #Обрабатываем как и раньше
+                if category_name.lower() in [cat.lower() for cat in categories]:
+                    ws_result.append(row)
+
+            wb_result.save(self.filter_output_file_path)
+            print(f"Файл отфильтрован по категории '{category_name}', результат сохранен в: {self.filter_output_file_path}")
+
+        except FileNotFoundError:
+            print(f"Ошибка: Файл {self.filter_output_file_path} не найден.")
+        except Exception as e:
+            print(f"Произошла ошибка: {e}")
